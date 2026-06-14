@@ -49,6 +49,22 @@ def set_match_status(match_no: int, payload: MatchStatusUpdate, db: Session = De
     return update_match_status(db, match, payload.status)
 
 
+@router.get("/selectedmatch", response_model=MatchResponse)
+def get_selected_match_endpoint(db: Session = Depends(get_db)):
+    match = get_selected_match(db)
+    if not match:
+        raise HTTPException(status_code=404, detail="Selected match not found")
+    return match
+
+
+@router.patch("/selectedmatch/{match_no}", response_model=MatchResponse)
+def update_selected_match_endpoint(match_no: int, payload: SelectedMatchUpdate, db: Session = Depends(get_db)):
+    try:
+        return set_selected_match(db, match_no, payload.winner, payload.phone)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 @router.delete("/{match_no}")
 def remove_match(match_no: int, db: Session = Depends(get_db)):
     match = get_match(db, match_no)
@@ -64,20 +80,3 @@ def update_match(match_no: int, payload: MatchCreate, db: Session = Depends(get_
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
     return update_match_details(db, match, payload)
-
-
-@router.get("/selectedmatch", response_model=MatchResponse)
-def get_selected_match_endpoint(db: Session = Depends(get_db)):
-    match = get_selected_match(db)
-    if not match:
-        raise HTTPException(status_code=404, detail="No match is currently selected")
-    return match
-
-
-@router.patch("/selectedmatch/{match_no}", response_model=MatchResponse)
-def update_selected_match_endpoint(match_no: int, payload: SelectedMatchUpdate, db: Session = Depends(get_db)):
-    try:
-        return set_selected_match(db, match_no, payload.winner, payload.phone)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-

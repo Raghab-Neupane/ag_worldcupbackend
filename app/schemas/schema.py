@@ -6,4 +6,13 @@ class Matches(BaseModel):
     stage: str
     team1: str
     team2: str
-    winner: Optional[str] = None
+
+class Result(BaseModel):
+    match_number: int
+    stage: str
+    team1: str
+    team2: str
+    draw: Optional[bool] = False
+    winner_name: str
+    winner_number: str
+    

@@ -1,21 +1,19 @@
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-RESULT_VALUES = {"TEAM1", "TEAM2", "DRAW"}
-STATUS_VALUES = {"upcoming", "completed"}
-
-
 class MatchBase(BaseModel):
-    match_no: int = Field(..., ge=1)
     stage: str = Field(..., min_length=1)
     team1: str = Field(..., min_length=1)
     team2: str = Field(..., min_length=1)
-    result: Optional[str] = None
-    winner: Optional[str] = None
-    status: Optional[str] = "upcoming"
-    phone: Optional[str] = None
+
+    post_id: Optional[str] = None
+    team_1_goal: Optional[int] = None
+    team_2_goal: Optional[int] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
 
     @field_validator("stage", "team1", "team2")
     @classmethod
@@ -25,23 +23,9 @@ class MatchBase(BaseModel):
             raise ValueError("must not be empty")
         return value
 
-    @field_validator("result")
-    @classmethod
-    def validate_result(cls, value: Optional[str]) -> Optional[str]:
-        if value == "":
-            return None
-        if value is not None and value not in RESULT_VALUES:
-            raise ValueError("invalid result value")
-        return value
 
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, value: Optional[str]) -> Optional[str]:
-        if value == "":
-            return "upcoming"
-        if value is not None and value not in STATUS_VALUES:
-            raise ValueError("invalid status value")
-        return value
+
+
 
     @model_validator(mode="after")
     def validate_teams(self):
@@ -51,35 +35,16 @@ class MatchBase(BaseModel):
 
 
 class MatchCreate(MatchBase):
-    pass
+    """Schema for creating a match (optional match_no)."""
+    match_no: Optional[int] = None
+    # other fields inherited from MatchBase
 
 
 class MatchBulkCreate(BaseModel):
     matches: List[MatchCreate]
 
 
-class MatchResultUpdate(BaseModel):
-    result: Optional[str] = None
 
-    @field_validator("result")
-    @classmethod
-    def validate_result(cls, value: Optional[str]) -> Optional[str]:
-        if value == "":
-            return None
-        if value is not None and value not in RESULT_VALUES:
-            raise ValueError("invalid result value")
-        return value
-
-
-class MatchStatusUpdate(BaseModel):
-    status: str
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, value: str) -> str:
-        if value not in STATUS_VALUES:
-            raise ValueError("invalid status value")
-        return value
 
 
 class MatchResponse(BaseModel):
@@ -87,11 +52,14 @@ class MatchResponse(BaseModel):
     stage: str
     team1: str
     team2: str
-    result: Optional[str] = None
-    winner: Optional[str] = None
-    status: str
-    phone: Optional[str] = None
     is_selected: bool = False
+    post_id: Optional[str] = None
+    winner: Optional[str] = None
+    phone: Optional[str] = None
+    team_1_goal: Optional[int] = None
+    team_2_goal: Optional[int] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

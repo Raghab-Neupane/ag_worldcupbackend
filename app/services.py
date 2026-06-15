@@ -12,12 +12,17 @@ def match_to_dict(match: Match):
         "stage": match.stage,
         "team1": match.team1,
         "team2": match.team2,
-        "result": match.result,
         "winner": match.winner,
-        "status": match.status,
         "phone": match.phone,
+        "post_id": match.post_id,
+        "team_1_goal": match.team_1_goal,
+        "team_2_goal": match.team_2_goal,
+        "start_time": match.start_time,
+        "end_time": match.end_time,
         "created_at": match.created_at,
         "updated_at": match.updated_at,
+        # Computed field for legacy UI compatibility
+        "goal_difference": (f"{match.team_1_goal}-{match.team_2_goal}" if match.team_1_goal is not None and match.team_2_goal is not None else None),
     }
 
 
@@ -29,8 +34,7 @@ def list_matches(db: Session):
     return db.query(Match).order_by(Match.match_no.asc()).all()
 
 
-def list_matches_by_status(db: Session, status: str):
-    return db.query(Match).filter(Match.status == status).order_by(Match.match_no.asc()).all()
+
 
 
 def list_matches_by_stage(db: Session, stage: str):
@@ -56,10 +60,6 @@ def bulk_insert_matches(db: Session, matches: list[MatchCreate]):
                 stage=item.stage,
                 team1=item.team1,
                 team2=item.team2,
-                result=item.result,
-                winner=item.winner,
-                status=item.status or "upcoming",
-                phone=item.phone,
             )
             db.add(match)
             inserted.append(match)
@@ -72,18 +72,8 @@ def bulk_insert_matches(db: Session, matches: list[MatchCreate]):
         raise
 
 
-def update_match_result(db: Session, match: Match, result: str):
-    match.result = result if result else None
-    db.commit()
-    db.refresh(match)
-    return match
 
 
-def update_match_status(db: Session, match: Match, status: str):
-    match.status = status
-    db.commit()
-    db.refresh(match)
-    return match
 
 
 def delete_match(db: Session, match: Match):
@@ -92,19 +82,25 @@ def delete_match(db: Session, match: Match):
 
 
 def create_match(db: Session, item: MatchCreate):
-    existing = get_match(db, item.match_no)
-    if existing:
-        raise ValueError("Match number already exists")
-    match = Match(
-        match_no=item.match_no,
-        stage=item.stage,
-        team1=item.team1,
-        team2=item.team2,
-        result=item.result,
-        winner=item.winner,
-        status=item.status or "upcoming",
-        phone=item.phone,
-    )
+    # If match_no is provided, ensure it does not already exist
+    if item.match_no is not None:
+        existing = get_match(db, item.match_no)
+        if existing:
+            raise ValueError("Match number already exists")
+    # Build Match instance, only include match_no if present
+    match_data = {
+        "stage": item.stage,
+        "team1": item.team1,
+        "team2": item.team2,
+        "post_id": item.post_id,
+        "team_1_goal": item.team_1_goal,
+        "team_2_goal": item.team_2_goal,
+        "start_time": item.start_time,
+        "end_time": item.end_time,
+    }
+    if item.match_no is not None:
+        match_data["match_no"] = item.match_no
+    match = Match(**match_data)
     db.add(match)
     db.commit()
     db.refresh(match)
@@ -114,10 +110,18 @@ def update_match_details(db: Session, match: Match, item: MatchCreate):
     match.stage = item.stage
     match.team1 = item.team1
     match.team2 = item.team2
-    match.result = item.result
-    match.winner = item.winner
-    match.status = item.status or "upcoming"
-    match.phone = item.phone
+    match.post_id = item.post_id
+    # Convert empty strings to None and cast to int for goal fields
+    if item.team_1_goal in (None, ''):
+        match.team_1_goal = None
+    else:
+        match.team_1_goal = int(item.team_1_goal)
+    if item.team_2_goal in (None, ''):
+        match.team_2_goal = None
+    else:
+        match.team_2_goal = int(item.team_2_goal)
+    match.start_time = item.start_time
+    match.end_time = item.end_time
     db.commit()
     db.refresh(match)
     return match

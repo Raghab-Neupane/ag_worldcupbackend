@@ -3,14 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import MatchCreate, MatchResponse, MatchResultUpdate, MatchStatusUpdate, SelectedMatchUpdate
+from app.schemas import MatchCreate, MatchResponse, SelectedMatchUpdate
 from app.services import (
     create_match,
     delete_match,
     get_match,
     list_matches,
-    update_match_result,
-    update_match_status,
     update_match_details,
     get_selected_match,
     set_selected_match,
@@ -33,20 +31,8 @@ def get_all_matches(db: Session = Depends(get_db)):
     return list_matches(db)
 
 
-@router.put("/{match_no}/result", response_model=MatchResponse)
-def set_match_result(match_no: int, payload: MatchResultUpdate, db: Session = Depends(get_db)):
-    match = get_match(db, match_no)
-    if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
-    return update_match_result(db, match, payload.result)
 
 
-@router.put("/{match_no}/status", response_model=MatchResponse)
-def set_match_status(match_no: int, payload: MatchStatusUpdate, db: Session = Depends(get_db)):
-    match = get_match(db, match_no)
-    if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
-    return update_match_status(db, match, payload.status)
 
 
 @router.get("/selectedmatch", response_model=MatchResponse)

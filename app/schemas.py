@@ -71,3 +71,7 @@ class APIResponse(BaseModel):
     success: bool = True
     message: str = "Operation successful"
     data: Dict[str, Any] = Field(default_factory=dict)
+
+class UserCreate(BaseModel):
+    usergmail: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=4)

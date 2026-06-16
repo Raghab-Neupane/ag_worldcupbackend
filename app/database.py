@@ -33,7 +33,7 @@ def get_db():
 
 
 def init_db():
-    from app.models import Match  # noqa: F401
+    from app.models import Match, User  # noqa: F401
     from sqlalchemy import text
 
     # Create database if it does not exist
@@ -45,3 +45,28 @@ def init_db():
     temp_engine.dispose()
 
     Base.metadata.create_all(bind=engine)
+
+    # Pre-populate default admin user and migrate existing passwords
+    from app.security import hash_password, is_hashed
+    db = SessionLocal()
+    try:
+        if db.query(User).count() == 0:
+            default_user = User(usergmail="admin@gmail.com", password=hash_password("admin123"))
+            db.add(default_user)
+            db.commit()
+            print("Default admin user created: admin@gmail.com / admin123 (hashed)")
+        else:
+            # Check for any users with unhashed passwords and hash them
+            users = db.query(User).all()
+            updated_count = 0
+            for u in users:
+                if not is_hashed(u.password):
+                    u.password = hash_password(u.password)
+                    updated_count += 1
+            if updated_count > 0:
+                db.commit()
+                print(f"Migrated {updated_count} user password(s) to hashed format.")
+    except Exception as e:
+        print(f"Error seeding/migrating user: {e}")
+    finally:
+        db.close()

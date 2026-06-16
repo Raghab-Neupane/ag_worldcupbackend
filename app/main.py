@@ -29,3 +29,41 @@ app.include_router(calculate_router)
 app.include_router(matches_router)
 
 
+from pydantic import BaseModel
+from fastapi import Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import User
+
+class LoginPayload(BaseModel):
+    usergmail: str
+    password: str
+
+from app.security import verify_password
+from app.schemas import UserCreate
+from app.security import hash_password
+
+@app.post("/login")
+def login(payload: LoginPayload, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.usergmail == payload.usergmail).first()
+    if not user or not verify_password(payload.password, user.password):
+        raise HTTPException(status_code=401, detail="Invalid Gmail or Password")
+    return {"success": True, "message": "Login successful"}
+
+@app.post("/register")
+def register(payload: UserCreate, db: Session = Depends(get_db)):
+    email_normalized = payload.usergmail.strip().lower()
+    existing_user = db.query(User).filter(User.usergmail == email_normalized).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Gmail is already registered")
+        
+    new_user = User(
+        usergmail=email_normalized,
+        password=hash_password(payload.password)
+    )
+    db.add(new_user)
+    db.commit()
+    return {"success": True, "message": "User registered successfully"}
+
+
+

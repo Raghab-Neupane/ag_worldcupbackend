@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas import MatchCreate, MatchResponse, SelectedMatchUpdate
+from app.models import Match
 from app.services import (
     create_match,
     delete_match,
@@ -43,10 +44,14 @@ def get_selected_match_endpoint(db: Session = Depends(get_db)):
     return match
 
 
-@router.patch("/selectedmatch/{match_no}", response_model=MatchResponse)
-def update_selected_match_endpoint(match_no: int, payload: SelectedMatchUpdate, db: Session = Depends(get_db)):
+@router.patch("/selectedmatch/{match_no}", response_model=Optional[MatchResponse])
+def update_selected_match_endpoint(match_no: str, payload: SelectedMatchUpdate, db: Session = Depends(get_db)):
     try:
-        return set_selected_match(db, match_no, payload.winner, payload.phone)
+        if match_no == "null":
+            db.query(Match).filter(Match.is_selected == True).update({Match.is_selected: False})
+            db.commit()
+            return None
+        return set_selected_match(db, int(match_no), payload.winner, payload.phone)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

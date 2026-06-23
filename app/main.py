@@ -15,6 +15,7 @@ app.add_middleware(
     allow_origins=[
         "https://worldcup.ambition.guru",
         "https://worldcup-admin.ambition.guru",
+        "http://localhost:9000",
         ""
     ],
     allow_credentials=False,
